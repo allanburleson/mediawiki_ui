@@ -1,6 +1,6 @@
 # mediawiki_ui
 
-**mediawiki_ui** is a Pythonista module for a nicer iOS user interface for MediaWiki wikis. You can use it with Wikipedia, Gamepedia, and any other wikis using MediaWiki (Wikia wikis currently don't work).
+**mediawiki_ui** is a [Pythonista](http://omz-software.com/pythonista/index.html) module for a nicer iOS user interface for MediaWiki wikis. You can use it with Wikipedia, Gamepedia, and any other wikis using MediaWiki (Wikia wikis currently don't work).
 
 Put this folder in `site-packages`.
 
