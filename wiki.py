@@ -29,7 +29,7 @@ class Wiki(object):
         if not wikiurl.endswith('/'):
             wikiurl += '/'
         self.wikiurl = wikiurl
-        self.searchurl = wikiurl + '?search='
+        self.searchurl = wikiurl + 'Special:Search?search='
         if len(sys.argv) > 2:
             self.args = True
         else:
@@ -74,11 +74,15 @@ class Wiki(object):
            
     def showResults(self, search):
         soup = BeautifulSoup(requests.get(search).text, 'html5lib')
-        resdivs = soup.findAll('div', attrs={'class': 'mw-search-result-heading'})
+        if 'wikia.com' in self.wikiurl:
+            elems = soup.findAll('a', attrs={'class': 'result-link'})
+        else:
+            elems = soup.findAll('div', attrs={'class': 'mw-search-result-heading'})
         self.results = []
-        if resdivs is not None:
-            for div in resdivs:
-                self.results.append(div.get_text())
+        if elems is not None:
+            for elem in elems:
+                if 'http' not in elem.get_text():
+                    self.results.append(elem.get_text())
         if len(self.results) == 0:
             console.hud_alert('No results', 'error')
             return

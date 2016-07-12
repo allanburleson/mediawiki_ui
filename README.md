@@ -1,6 +1,6 @@
 # mediawiki_ui
 
-**mediawiki_ui** is a [Pythonista](http://omz-software.com/pythonista/index.html) module for a nicer iOS user interface for MediaWiki wikis. You can use it with Wikipedia, Gamepedia, and any other wikis using MediaWiki (Wikia wikis currently don't work).
+**mediawiki_ui** is a [Pythonista](http://omz-software.com/pythonista/index.html) module for a nicer iOS user interface for MediaWiki wikis. You can use it with Wikipedia, Gamepedia, Wikia, and any other wikis using MediaWiki.
 
 Put this folder in `site-packages`.
 
@@ -13,6 +13,6 @@ This URL MUST be the full URL for the wiki (`https://wikipedia.org/wiki`, not `h
 ## TODO:
 
 - [ ] Use more than just WebView.load_url for viewing pages (like Safari's Reader view)
-- [ ] Add Wikia support
+- [x] Add Wikia support
 - [ ] Create documentation
 - [ ] Create an interface for switching between wikis
