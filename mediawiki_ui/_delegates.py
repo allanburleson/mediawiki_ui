@@ -18,7 +18,7 @@ class WebViewDelegate (object):
         console.alert('Error %s' % error_code, error_msg, 'OK', hide_cancel_button=True)
         
         
-class tvDelegate(object): #also acts as the data_source.  Can be separate, but this is easier.  
+class tvDelegate(object):
     def __init__(self, items, wv, url, results):   
         self.items = items
         self.currentNumLines = len(items)
@@ -29,32 +29,25 @@ class tvDelegate(object): #also acts as the data_source.  Can be separate, but t
         self.results = results
         
     def tableview_did_select(self, tableview, section, row):
-        # Called when a row was selected.
         self.currentTitle = self.items[row]['title']
-        self.currentRow = row # needed for the test above
-        tableview.reload_data() # forces changes into the displayed list
+        self.currentRow = row
+        tableview.reload_data()
         tableview.close()
         self.wv.load_url(self.wikiurl + ('%20'.join(self.results[row].split(' '))))
         
     def tableview_did_deselect(self, tableview, section, row):
-        # Called when a row was de-selected (in multiple selection mode).
         pass
 
     def tableview_title_for_delete_button(self, tableview, section, row):
-        # Return the title for the 'swipe-to-***' button.
         return 'Delete'
         
     def tableview_number_of_sections(self, tableview):
-        # Return the number of sections (defaults to 1). Someone else can mess with 
-        # sections and section logic
         return 1
 
     def tableview_number_of_rows(self, tableview, section):
-        # Return the number of rows in the section
-        return self.currentNumLines #needed to be in sync with displayed version, 
+        return self.currentNumLines
 
     def tableview_cell_for_row(self, tableview, section, row):
-        # Create and return a cell for the given section/row
         cell = ui.TableViewCell()
         cell.text_label.text =  self.items[row]['title']
         cell.accessory_type = self.items[row]['accessory_type']
@@ -62,21 +55,15 @@ class tvDelegate(object): #also acts as the data_source.  Can be separate, but t
 
 
     def tableview_can_delete(self, tableview, section, row):
-        # Return True if the user should be able to delete the given row.
-        return False # you can use logic to lock out specific ("pinned" entries) 
+        return False
 
     def tableview_can_move(self, tableview, section, row):
-        # Return True if a reordering control should be shown for the given row (in editing mode).
-        return False # see above
+        return False
 
     def tableview_delete(self, tableview, section, row):
-        # Called when the user confirms deletion of the given row.
-        self.currentNumLines -= 1 # see above regarding hte "syncing"
-        tableview.delete_rows((row,)) # this animates the deletion  could also 'tableview.reload_data()'
+        self.currentNumLines -= 1
+        tableview.delete_rows((row,))
         del self.items[row]
 
     def tableview_move_row(self, tableview, from_section, from_row, to_section, to_row):
-        # Called when the user moves a row with the reordering control (in editing mode).
-        
         self.items = listShuffle(self.items,from_row,to_row) 
-        # cynchronizes what is displayed with the underlying list
