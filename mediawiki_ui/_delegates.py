@@ -6,19 +6,21 @@ class WebViewDelegate (object):
         return True
         
     def webview_did_start_load(webview):
+        # Tell the user that the page is loading
         console.show_activity('Loading...')
         
     def webview_did_finish_load(webview):
-        global currenturl
+        # Get page title with some JavaScript
         currenturl = webview.eval_js('window.location.href')
         webview.name = webview.eval_js('document.title').split(' -')[0]
         console.hide_activity()
         
     def webview_did_fail_load(webview, error_code, error_msg):
-        console.alert('Error %s' % error_code, error_msg, 'OK', hide_cancel_button=True)
+        console.alert('Error %s' % error_code, error_msg, 'OK',
+                      hide_cancel_button=True)
         
         
-class tvDelegate(object):
+class SearchTableViewDelegate(object):
     def __init__(self, items, wv, url, results):   
         self.items = items
         self.currentNumLines = len(items)
@@ -29,11 +31,13 @@ class tvDelegate(object):
         self.results = results
         
     def tableview_did_select(self, tableview, section, row):
+        # Load page from selected search result
         self.currentTitle = self.items[row]['title']
         self.currentRow = row
         tableview.reload_data()
         tableview.close()
-        self.wv.load_url(self.wikiurl + ('%20'.join(self.results[row].split(' '))))
+        self.wv.load_url(self.wikiurl + 
+                         ('%20'.join(self.results[row].split(' '))))
         
     def tableview_did_deselect(self, tableview, section, row):
         pass

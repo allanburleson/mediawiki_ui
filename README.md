@@ -17,5 +17,5 @@ This URL MUST be the full URL for the wiki (`https://wikipedia.org/wiki`, not `h
 
 - [ ] Use more than just WebView.load_url for viewing pages (like Safari's Reader view)
 - [x] Add Wikia support
-- [ ] Create documentation
+- [x] Document with comments
 - [x] Create an interface for switching between wikis

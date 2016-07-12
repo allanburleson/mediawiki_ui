@@ -19,21 +19,23 @@ import requests
 import sys
 import ui
 
-from ._delegates import WebViewDelegate, tvDelegate
+from ._delegates import WebViewDelegate, SearchTableViewDelegate
 
 
 class Wiki(object):
     def __init__(self, wikiurl):
         self.webdelegate = WebViewDelegate
-        self.tvdelegate = tvDelegate
+        self.SearchTableViewDelegate = SearchTableViewDelegate
         if not wikiurl.endswith('/'):
             wikiurl += '/'
+        # Create URLs
         self.wikiurl = wikiurl
         self.searchurl = wikiurl + 'Special:Search?search='
         if len(sys.argv) > 2:
             self.args = True
         else:
             self.args = False
+        # Create WebView
         self.webview = ui.WebView()
         self.mainSource = ''
         self.loadPage(wikiurl)
@@ -60,6 +62,7 @@ class Wiki(object):
             pass
                         
     def search(self, sch, ret=False):
+        # Remove extra characters
         sch = sch.strip().strip(',').strip('.')
         self.previousSearch = sch
         console.show_activity('Searching...')
@@ -67,6 +70,8 @@ class Wiki(object):
         req = requests.get(url)
         req.raise_for_status()
         console.hide_activity()
+        # Show search results in table view unless the search redirects
+        # to a wiki page
         if req.url.startswith(self.searchurl):
             return False if ret else self.showResults(url)
         else:
@@ -74,6 +79,7 @@ class Wiki(object):
            
     def showResults(self, search):
         soup = BeautifulSoup(requests.get(search).text, 'html5lib')
+        # Figure out what class the search results are in
         if 'wikia.com' in self.wikiurl:
             elems = soup.findAll('a', attrs={'class': 'result-link'})
         else:
@@ -81,13 +87,14 @@ class Wiki(object):
         self.results = []
         if elems is not None:
             for elem in elems:
+                # Remove URLs from result list
                 if 'http' not in elem.get_text():
                     self.results.append(elem.get_text())
         if len(self.results) == 0:
             console.hud_alert('No results', 'error')
             return
         itemlist = [{'title': result, 'accessory_type':'none'} for result in self.results]
-        vdel = tvDelegate(itemlist, self.webview, self.wikiurl, self.results)
+        vdel = SearchTableViewDelegate(itemlist, self.webview, self.wikiurl, self.results)
         self.tv = ui.TableView()
         self.tv.name = soup.title.text.split(' -')[0]
         self.tv.delegate = self.tv.data_source = vdel

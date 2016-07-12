@@ -23,9 +23,9 @@ class TableViewDelegate(object):
         self.currentRow = row
         tableview.reload_data()
         for wiki in self.wikis:
+            # Find wiki URL and load it
             if wiki == tableview.data_source.items[row]['title']:
                 w = Wiki(self.wikis[wiki])
-                return
         
     def tableview_did_deselect(self, tableview, section, row):
         pass
@@ -55,35 +55,36 @@ class TableViewDelegate(object):
 class WikiList(object):
     def __init__(self, wikis):
         addbtn = ui.ButtonItem(image=ui.Image.named('iob:ios7_plus_empty_32'), action=self.add)
+        # self.editbtn so it can be used in WikiList.edit
         self.editbtn = ui.ButtonItem(title='Edit', action=self.edit)
         items = None
+        # If save file exists use it
         if os.path.isfile(os.path.expanduser('~/.mwsave.dat')):
             s = shelve.open(os.path.expanduser('~/.mwsave'))
             try:
                 wikis = s['wikis']
-                #items = s['items']
             except KeyError:
                 pass
             s.close()
         self.tv = ui.TableView(name='Wikis')
         self.nv = ui.NavigationView(self.tv)
-        #self.nv.add_subview(self.tv)
         self.tv.delegate = TableViewDelegate(wikis)
         items = []
+        # Create data source from dictionary of wikis
         for wiki in wikis:
             items.append({'title': wiki, 'accessory_type': 'detail_disclosure_button'})
         self.tv.data_source = ui.ListDataSource(items)
-        #for i in items:
-        #    self.tv.data_source.items.append({'title': i, 'accessory_type': 'detail_button'})
         self.tv.data_source.move_enabled = True
         self.tv.data_source.edit_action = self.removeFromWikis
         self.tv.right_button_items = [addbtn]
         self.tv.left_button_items = [self.editbtn]
         self.nv.present('fullscreen', hide_title_bar=True)
+        # Wait until the view closes to save app data
         self.nv.wait_modal()
         self.save()
           
     def add(self, sender):
+        '''Add wiki to list of wikis'''
         fields=[{'type':'text','key':'title','title':'Title'},
                 {'type':'url','key':'url','title':'URL','value':'http'}]
         urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is the full'\
@@ -95,14 +96,18 @@ class WikiList(object):
             self.tv.reload()
     
     def edit(self, sender):
+        '''Go into wiki edit mode'''
         def done(sender):
             self.tv.editing = False
+            # Change button labeled "Done" to "Edit"
             self.tv.left_button_items = [self.editbtn]
+        # Change button labeled "Edit" to "Done"
         donebtn = ui.ButtonItem(title='Done', action=done)
         self.tv.left_button_items = [donebtn]
         self.tv.editing = True
         
-    def save(self):
+    def save(self): 
+        '''Save app data'''
         try:
             s = shelve.open(os.path.expanduser('~/.mwsave'))
         except FileNotFoundError:
