@@ -11,10 +11,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
-import console
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup 
+import console
+import dialogs
 import requests
 import sys
 import ui
@@ -106,7 +106,7 @@ class Wiki(object):
         self.webview.go_forward()
                       
     def searchTapped(self, sender):
-        page = console.input_alert('Search', '', self.previousSearch, 'Search')
+        page = console.input_alert('Enter search terms', '', self.previousSearch, 'Go')
         self.search(page)
              
     def home(self, sender=None):

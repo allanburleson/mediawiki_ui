@@ -39,9 +39,11 @@ class TableViewDelegate(object):
     def tableview_accessory_button_tapped(self, tableview, section, row):
         fields=[{'type': 'text', 'key': 'title', 'title': 'Title',
                  'value': tableview.data_source.items[row]['title']},
-                {'type': 'text', 'key': 'url', 'title': 'URL',
+                {'type': 'url', 'key': 'url', 'title': 'URL',
                  'value': self.wikis[tableview.data_source.items[row]['title']]}]
-        result = dialogs.form_dialog('Edit Data', fields)
+        urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is the full'\
+                  ' wiki URL ("https://en.wikipedia.org/wiki", not "https://en.wikipedia.org").'
+        result = dialogs.form_dialog('Edit Data', sections=(('', fields, urlinfo),))
         if result:
             origTitle = tableview.data_source.items[row]['title']
             tableview.data_source.items[row]['title'] = result['title']
@@ -83,8 +85,10 @@ class WikiList(object):
           
     def add(self, sender):
         fields=[{'type':'text','key':'title','title':'Title'},
-                {'type':'text','key':'url','title':'URL','value':'http'}]
-        result=dialogs.form_dialog('Add Wiki', fields)
+                {'type':'url','key':'url','title':'URL','value':'http'}]
+        urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is the full'\
+                  ' wiki URL ("https://en.wikipedia.org/wiki", not "https://en.wikipedia.org").'
+        result = dialogs.form_dialog('Add Wiki', sections=(('', fields, urlinfo),))
         if result:
             self.tv.data_source.items.append(({'title': result['title'], 'accessory_type': 'detail_disclosure_button'}))
             self.tv.delegate.wikis[result['title']] = result['url']
