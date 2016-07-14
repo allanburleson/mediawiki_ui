@@ -21,13 +21,14 @@ class WebViewDelegate (object):
         
         
 class SearchTableViewDelegate(object):
-    def __init__(self, items, wv, url, results):   
+    def __init__(self, items, wv, wiki, url, results):   
         self.items = items
         self.currentNumLines = len(items)
         self.currentTitle = None
         self.currentRow = None
         self.wv = wv
         self.wikiurl = url
+        self.wiki = wiki
         self.results = results
         
     def tableview_did_select(self, tableview, section, row):
@@ -36,7 +37,7 @@ class SearchTableViewDelegate(object):
         self.currentRow = row
         tableview.reload_data()
         tableview.close()
-        self.wv.load_url(self.wikiurl + 
+        self.wiki.loadPage(self.wikiurl + 
                          ('%20'.join(self.results[row].split(' '))))
         
     def tableview_did_deselect(self, tableview, section, row):

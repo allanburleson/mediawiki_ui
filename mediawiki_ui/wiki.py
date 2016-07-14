@@ -19,18 +19,24 @@ import requests
 import sys
 import ui
 
-from ._delegates import WebViewDelegate, SearchTableViewDelegate
+from _delegates import WebViewDelegate, SearchTableViewDelegate
 
 
 class Wiki(object):
-    def __init__(self, wikiurl):
+    def __init__(self, basewikiurl, wikiurl):
         self.webdelegate = WebViewDelegate
         self.SearchTableViewDelegate = SearchTableViewDelegate
         if not wikiurl.endswith('/'):
             wikiurl += '/'
         # Create URLs
+        assert basewikiurl in wikiurl, 'basewikiurl must be in wikiurl'
+        if basewikiurl.endswith('/'):
+            basewikiurl = basewikiurl[:-1]
+        self.basewikiurl = basewikiurl
         self.wikiurl = wikiurl
         self.searchurl = wikiurl + 'Special:Search?search='
+        self.history = []
+        self.currenthtml = ''
         if len(sys.argv) > 2:
             self.args = True
         else:
@@ -38,8 +44,8 @@ class Wiki(object):
         # Create WebView
         self.webview = ui.WebView()
         self.mainSource = ''
-        self.loadPage(wikiurl)
         self.webview.delegate = WebViewDelegate
+        self.loadPage(self.wikiurl)
         self.searchButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_search_24'), action=self.searchTapped)
         self.reloadButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_refresh_outline_24'), action=self.reloadTapped)
         self.backButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_back_24'), action=self.backTapped)
@@ -94,17 +100,51 @@ class Wiki(object):
             console.hud_alert('No results', 'error')
             return
         itemlist = [{'title': result, 'accessory_type':'none'} for result in self.results]
-        vdel = SearchTableViewDelegate(itemlist, self.webview, self.wikiurl, self.results)
+        vdel = SearchTableViewDelegate(itemlist, self.webview, self, self.wikiurl, self.results)
         self.tv = ui.TableView()
         self.tv.name = soup.title.text.split(' -')[0]
         self.tv.delegate = self.tv.data_source = vdel
         self.tv.present('fullscreen')
          
+    @ui.in_background
     def loadPage(self, url):
-        self.webview.load_url(url)
+        pagetxt = requests.get(url).text
+        soup = BeautifulSoup(pagetxt, 'html5lib')
+        if 'wikia.com' in self.wikiurl:
+            body = soup.find(id='mw-content-text')
+        else:
+            body = soup.find(id='bodyContent')
+        articletxt = str(body)
+        css = '''
+        a {
+            text-decoration: none;
+        }
+        p, a, div {
+            font-family: Helvetica, Arial, sans-serif;
+        }
+        '''
+        articletxt = '''
+        <html><head><style>{}</style></head><body>
+        '''.format(css) + articletxt + '</body></html>'
+        soup = BeautifulSoup(articletxt, 'html5lib')
+        links = soup.find_all('a')
+        for link in links:
+            if link.get('href'):
+                if not link['href'].startswith('http'):
+                    link['href'] = self.basewikiurl + link['href']
+        imgs = soup.find_all('img')
+        for img in imgs:
+            if img.get('src'):
+                img['src'] = self.basewikiurl + img['src']
+            if img.get('srcset'):
+                del img.attrs['srcset']
+        articletxt = soup.prettify()
+        self.webview.load_html(articletxt)
+        self.history.append(articletxt)
+        self.currenthtml = articletxt
                             
     def reloadTapped(self, sender):
-        self.webview.reload()
+        self.webview.load_html(self.currenthtml)
         
     def backTapped(self, sender):
         self.webview.go_back()
@@ -118,3 +158,6 @@ class Wiki(object):
              
     def home(self, sender=None):
         self.loadPage(self.wikiurl)
+        
+if __name__ == '__main__':
+    w = Wiki('http://coppermind.net', 'http://coppermind.net/wiki')
