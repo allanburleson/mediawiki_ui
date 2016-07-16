@@ -49,7 +49,7 @@ class TableViewDelegate(object):
             tableview.data_source.items[row]['title'] = result['title']
             tableview.reload_data()
             self.wikis[tableview.data_source.items[row]['title']] = result['url']
-            self.wikis[origTitle] = None
+            del self.wikis[origTitle]
         
 
 class WikiList(object):
@@ -115,8 +115,7 @@ class WikiList(object):
         s['items'] = self.tv.data_source.items
         wikis = {}
         for wiki in self.tv.delegate.wikis:
-            if self.tv.delegate.wikis[wiki] is not None:
-                wikis[wiki] = self.tv.delegate.wikis[wiki]
+            wikis[wiki] = self.tv.delegate.wikis[wiki]
         s['wikis'] = wikis
         s.close()
         
@@ -126,7 +125,7 @@ class WikiList(object):
             items.append(i['title'])
         for wiki in self.tv.delegate.wikis:
             if wiki not in items:
-                self.tv.delegate.wikis[wiki] = None
+                del self.tv.delegate.wikis[wiki]
         
 
 wikis = {'Wikipedia':'https://en.wikipedia.org/wiki'}

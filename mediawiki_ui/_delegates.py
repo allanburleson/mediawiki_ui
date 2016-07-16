@@ -2,10 +2,14 @@ import console
 import ui
 
 class WebViewDelegate (object):
+    def __init__(self, wiki):
+        self.wiki = wiki
+        
     def webview_should_start_load(webview, url, nav_type):
         return True
         
     def webview_did_start_load(webview):
+        print(webview.eval_js('window.location.href'))
         # Tell the user that the page is loading
         console.show_activity('Loading...')
         

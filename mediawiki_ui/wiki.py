@@ -15,16 +15,18 @@
 from bs4 import BeautifulSoup 
 import console
 import dialogs
+import os
 import requests
 import sys
+import threading
 import ui
 
 from _delegates import WebViewDelegate, SearchTableViewDelegate
-
-
+        
+        
 class Wiki(object):
     def __init__(self, basewikiurl, wikiurl):
-        self.webdelegate = WebViewDelegate
+        self.webdelegate = WebViewDelegate(self)
         self.SearchTableViewDelegate = SearchTableViewDelegate
         if not wikiurl.endswith('/'):
             wikiurl += '/'
@@ -36,7 +38,7 @@ class Wiki(object):
         self.wikiurl = wikiurl
         self.searchurl = wikiurl + 'Special:Search?search='
         self.history = []
-        self.currenthtml = ''
+        self.closed = False
         if len(sys.argv) > 2:
             self.args = True
         else:
@@ -56,6 +58,12 @@ class Wiki(object):
         self.previousSearch = ''
         if len(sys.argv) > 1:
             self.search(sys.argv[1])
+        closeThread = threading.Thread(target=self.waitForClose)
+        closeThread.start()
+        
+    def waitForClose(self):
+        self.webview.wait_modal()
+        self.closed = True
             
     def closeAll(self):
         try:
@@ -106,32 +114,58 @@ class Wiki(object):
         self.tv.delegate = self.tv.data_source = vdel
         self.tv.present('fullscreen')
          
-    @ui.in_background
     def loadPage(self, url):
-        pagetxt = requests.get(url).text
-        soup = BeautifulSoup(pagetxt, 'html5lib')
-        if 'wikia.com' in self.wikiurl:
-            body = soup.find(id='mw-content-text')
+        fn = self.fileFromUrl(url)
+        if os.path.isfile(fn):
+            filename = fn
+            soup = BeautifulSoup(open(fn, encoding='utf-8').read(), 'html.parser')
+            links = []
+            for link in soup.find_all('a'):
+                #
+                if link.get('href'):
+                    #print(link['href'])
+                    if self.basewikiurl in link['href']:
+                        links.append(link['href'])
+            self.genMorePages(links)
         else:
-            body = soup.find(id='bodyContent')
+            console.show_activity('Formatting page...')
+            filename = self.genPage(url)
+            console.hide_activity()
+        self.webview.load_html(open(filename, encoding='utf-8').read())
+        self.history.append(filename)
+        self.currentfile = filename
+        
+    def genPage(self, url, more=True):
+        pagetxt = requests.get(url).text
+        s = BeautifulSoup(pagetxt, 'html.parser')
+        if 'wikia.com' in self.wikiurl:
+            body = s.find(id='mw-content-text')
+        else:
+            body = s.find(id='bodyContent')
         articletxt = str(body)
-        css = '''
-        a {
-            text-decoration: none;
-        }
-        p, a, div {
-            font-family: Helvetica, Arial, sans-serif;
-        }
-        '''
         articletxt = '''
-        <html><head><style>{}</style></head><body>
-        '''.format(css) + articletxt + '</body></html>'
-        soup = BeautifulSoup(articletxt, 'html5lib')
+        <html><head><style>
+        a {{
+            text-decoration: none;
+        }}
+        a.image {{
+            text-align: center;
+        }}
+        p, a, div {{
+            font-family: Helvetica, Arial, sans-serif;
+        }}
+        </style><title>{}</title></head><body>
+        '''.format(s.title.text) + articletxt + '</body></html>'
+        soup = BeautifulSoup(articletxt, 'html.parser')
         links = soup.find_all('a')
+        plinks = []
         for link in links:
             if link.get('href'):
                 if not link['href'].startswith('http'):
                     link['href'] = self.basewikiurl + link['href']
+                    plinks.append(link['href'])
+        if more:  
+            self.genMorePages(plinks)
         imgs = soup.find_all('img')
         for img in imgs:
             if img.get('src'):
@@ -139,12 +173,40 @@ class Wiki(object):
             if img.get('srcset'):
                 del img.attrs['srcset']
         articletxt = soup.prettify()
-        self.webview.load_html(articletxt)
-        self.history.append(articletxt)
-        self.currenthtml = articletxt
+        filename = self.fileFromUrl(url)
+        file = open(filename, 'w', encoding='utf-8')
+        file.write(articletxt)
+        file.close()
+        return filename
+        
+    @ui.in_background
+    def genMorePages(self, urls):
+        usedurls = []
+        for url in urls:
+            fn = self.fileFromUrl(url)
+            if not os.path.isfile(fn):
+                usedurls.append(url)
+        for url in usedurls:
+            if self.closed:
+                return
+            #print('{}% done, parsing {}'.format(int(usedurls.index(url) + 1 / 
+             #                                   len(usedurls)), url))
+            self.genPage(url, False)
+        
+    def fileFromUrl(self, url):
+        filename = None
+        try:
+            filename = url.split('//')[1].split('/')[2]
+        except IndexError:
+            pass
+        if not filename:
+            filename = 'main.html'
+        if not filename.endswith('.html'):
+            filename += '.html'
+        return filename
                             
     def reloadTapped(self, sender):
-        self.webview.load_html(self.currenthtml)
+        self.webview.load_html(open(self.currentfile, encoding='utf-8').read())
         
     def backTapped(self, sender):
         self.webview.go_back()
@@ -159,5 +221,10 @@ class Wiki(object):
     def home(self, sender=None):
         self.loadPage(self.wikiurl)
         
+        
+if not os.path.isdir(os.path.expanduser('~/.mwui')):
+    os.mkdir(os.path.expanduser('~/.mwui'))
+os.chdir(os.path.expanduser('~/.mwui'))
+
 if __name__ == '__main__':
     w = Wiki('http://coppermind.net', 'http://coppermind.net/wiki')
