@@ -25,7 +25,11 @@ from _delegates import WebViewDelegate, SearchTableViewDelegate
         
         
 class Wiki(object):
-    def __init__(self, basewikiurl, wikiurl):
+    def __init__(self, wikiname, basewikiurl, wikiurl):
+        self.wikidir = os.path.expanduser('~/.mw-' + wikiname)
+        if not os.path.isdir(self.wikidir):
+            os.mkdir(self.wikidir)
+        os.chdir(self.wikidir)
         self.webdelegate = WebViewDelegate(self)
         self.SearchTableViewDelegate = SearchTableViewDelegate
         if not wikiurl.endswith('/'):
@@ -53,8 +57,10 @@ class Wiki(object):
         self.backButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_back_24'), action=self.backTapped)
         self.fwdButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_forward_24'), action=self.fwdTapped)
         self.homeButton = ui.ButtonItem(image=ui.Image.named('iob:home_24'), action=self.home)
+        self.shareButton = ui.ButtonItem(image=ui.Image.named('iob:share_24'), action=self.share)
         self.webview.right_button_items = [self.searchButton, self.reloadButton, self.fwdButton, self.backButton, self.homeButton]
-        self.webview.present('fullscreen', animated=False)
+        self.webview.left_button_items = [self.shareButton]
+        self.webview.present('fullscreen', animated=True)
         self.previousSearch = ''
         if len(sys.argv) > 1:
             self.search(sys.argv[1])
@@ -114,16 +120,15 @@ class Wiki(object):
         self.tv.delegate = self.tv.data_source = vdel
         self.tv.present('fullscreen')
          
-    def loadPage(self, url):
+    def loadPage(self, url, regen=False):
         fn = self.fileFromUrl(url)
-        if os.path.isfile(fn):
+        if os.path.isfile(fn) and regen is False:
             filename = fn
             soup = BeautifulSoup(open(fn, encoding='utf-8').read(), 'html.parser')
             links = []
             for link in soup.find_all('a'):
                 #
                 if link.get('href'):
-                    #print(link['href'])
                     if self.basewikiurl in link['href']:
                         links.append(link['href'])
             self.genMorePages(links)
@@ -132,8 +137,7 @@ class Wiki(object):
             filename = self.genPage(url)
             console.hide_activity()
         self.webview.load_html(open(filename, encoding='utf-8').read())
-        self.history.append(filename)
-        self.currentfile = filename
+        self.currentpage = url
         
     def genPage(self, url, more=True):
         pagetxt = requests.get(url).text
@@ -190,7 +194,7 @@ class Wiki(object):
             if self.closed:
                 return
             #print('{}% done, parsing {}'.format(int(usedurls.index(url) + 1 / 
-             #                                   len(usedurls)), url))
+            #                                    len(usedurls)), url))
             self.genPage(url, False)
         
     def fileFromUrl(self, url):
@@ -206,13 +210,16 @@ class Wiki(object):
         return filename
                             
     def reloadTapped(self, sender):
-        self.webview.load_html(open(self.currentfile, encoding='utf-8').read())
+        thread = threading.Thread(target=self.loadPage, args=(self.currentpage, True))
+        thread.start()
         
     def backTapped(self, sender):
-        self.webview.go_back()
+        #self.loadPage(self.history[-1])
+        pass
     
     def fwdTapped(self, sender):
-        self.webview.go_forward()
+        #self.webview.go_forward()
+        pass
                       
     def searchTapped(self, sender):
         page = console.input_alert('Enter search terms', '', self.previousSearch, 'Go')
@@ -220,11 +227,9 @@ class Wiki(object):
              
     def home(self, sender=None):
         self.loadPage(self.wikiurl)
-        
-        
-if not os.path.isdir(os.path.expanduser('~/.mwui')):
-    os.mkdir(os.path.expanduser('~/.mwui'))
-os.chdir(os.path.expanduser('~/.mwui'))
+    
+    def share(self, sender):
+        dialogs.share_url(self.currentpage)
 
 if __name__ == '__main__':
-    w = Wiki('http://coppermind.net', 'http://coppermind.net/wiki')
+    w = Wiki('coppermind', 'http://coppermind.net', 'http://coppermind.net/wiki')

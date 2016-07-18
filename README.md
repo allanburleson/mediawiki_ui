@@ -18,11 +18,13 @@ Many thanks go to members Pythonista community for their assistance.
 
 ## TODO
 
-- [ ] Make the loading of articles look nicer
+- [x] Make the loading of articles look nicer
 	- [x] Make custom CSS styles
-	- [ ] Make urls work with reader thing
-	- [ ] Add open in Safari button
-	- [ ] Add font changer
+	- [x] Make urls work with reader thing
+- [ ] Add open in Safari button
+- [ ] Add font changer
+- [ ] Implement history
+- [ ] Make external URLs work
 - [x] Add Wikia support
 - [x] Document with comments
 - [x] Create an interface for switching between wikis

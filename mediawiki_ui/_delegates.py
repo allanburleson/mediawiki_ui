@@ -2,14 +2,23 @@ import console
 import ui
 
 class WebViewDelegate (object):
-    def __init__(self, wiki):
-        self.wiki = wiki
+    def __init__(self, wki):
+        global wiki, url
+        url = ''
+        wiki = wki
         
-    def webview_should_start_load(webview, url, nav_type):
-        return True
+    def webview_should_start_load(webview, pgurl, nav_type):
+        # The pages loaded with load_html are about:blank
+        global url
+        if pgurl == 'about:blank':
+            url = ''
+            return True
+        else:
+            url = pgurl
+            wiki.loadPage(url)
+            return False
         
     def webview_did_start_load(webview):
-        print(webview.eval_js('window.location.href'))
         # Tell the user that the page is loading
         console.show_activity('Loading...')
         
@@ -18,6 +27,8 @@ class WebViewDelegate (object):
         currenturl = webview.eval_js('window.location.href')
         webview.name = webview.eval_js('document.title').split(' -')[0]
         console.hide_activity()
+        if url != '':
+            wiki.history.append(url)
         
     def webview_did_fail_load(webview, error_code, error_msg):
         console.alert('Error %s' % error_code, error_msg, 'OK',
