@@ -8,14 +8,16 @@ class WebViewDelegate (object):
         wiki = wki
         
     def webview_should_start_load(webview, pgurl, nav_type):
-        # The pages loaded with load_html are about:blank
         global url
-        if pgurl == 'about:blank':
-            url = ''
+        if not pgurl.startswith(wiki.basewikiurl) and pgurl != 'about:blank':
+            url = pgurl
+            return True
+        # The pages loaded with load_html are about:blank
+        elif pgurl == 'about:blank':
+            url = wiki.currentpage
             return True
         else:
-            url = pgurl
-            wiki.loadPage(url)
+            wiki.loadPage(pgurl)
             return False
         
     def webview_did_start_load(webview):
@@ -27,12 +29,12 @@ class WebViewDelegate (object):
         currenturl = webview.eval_js('window.location.href')
         webview.name = webview.eval_js('document.title').split(' -')[0]
         console.hide_activity()
-        if url != '':
+        if url and not wiki.back:
             wiki.history.append(url)
+            wiki.histIndex += 1
         
     def webview_did_fail_load(webview, error_code, error_msg):
-        console.alert('Error %s' % error_code, error_msg, 'OK',
-                      hide_cancel_button=True)
+        print('Error %s' % error_code, error_msg)
         
         
 class SearchTableViewDelegate(object):

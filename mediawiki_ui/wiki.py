@@ -20,6 +20,7 @@ import requests
 import sys
 import threading
 import ui
+import webbrowser
 
 from _delegates import WebViewDelegate, SearchTableViewDelegate
         
@@ -42,6 +43,8 @@ class Wiki(object):
         self.wikiurl = wikiurl
         self.searchurl = wikiurl + 'Special:Search?search='
         self.history = []
+        self.histIndex = 0
+        self.back = False
         self.closed = False
         if len(sys.argv) > 2:
             self.args = True
@@ -136,8 +139,8 @@ class Wiki(object):
             console.show_activity('Formatting page...')
             filename = self.genPage(url)
             console.hide_activity()
-        self.webview.load_html(open(filename, encoding='utf-8').read())
         self.currentpage = url
+        self.webview.load_html(open(filename, encoding='utf-8').read())
         
     def genPage(self, url, more=True):
         pagetxt = requests.get(url).text
@@ -214,12 +217,25 @@ class Wiki(object):
         thread.start()
         
     def backTapped(self, sender):
-        #self.loadPage(self.history[-1])
-        pass
+        if len(self.history) > 1:
+            self.back = True
+            self.getHistoryPage(self.history[self.histIndex - 2])
+            self.histIndex -= 1
+            self.back = False
     
     def fwdTapped(self, sender):
-        #self.webview.go_forward()
-        pass
+        if len(self.history) > 1:
+            #self.getHistoryPage(self.history)
+            self.back = True
+            self.getHistoryPage(self.history[self.histIndex - 1])
+            self.histIndex -= 1
+            self.back = False
+        
+    def getHistoryPage(self, url):
+        if url in self.basewikiurl:
+            self.loadPage(url)
+        else:
+            self.webview.load_url(url)
                       
     def searchTapped(self, sender):
         page = console.input_alert('Enter search terms', '', self.previousSearch, 'Go')
@@ -230,6 +246,10 @@ class Wiki(object):
     
     def share(self, sender):
         dialogs.share_url(self.currentpage)
+        
+    def safari(self, sender):
+        webbrowser.open('safari-' + self.currentpage)
+        
 
 if __name__ == '__main__':
     w = Wiki('coppermind', 'http://coppermind.net', 'http://coppermind.net/wiki')

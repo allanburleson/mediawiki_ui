@@ -23,7 +23,7 @@ Many thanks go to members Pythonista community for their assistance.
 	- [x] Make urls work with reader thing
 - [ ] Add open in Safari button
 - [ ] Add font changer
-- [ ] Implement history
+- [x] Implement history
 - [ ] Make external URLs work
 - [x] Add Wikia support
 - [x] Document with comments
