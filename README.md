@@ -24,7 +24,8 @@ Many thanks go to members Pythonista community for their assistance.
 - [x] Add open in Safari button
 - [ ] Add font changer
 - [x] Implement history
-- [ ] Make external URLs work
+- [x] Make external URLs work
+- [ ] Improve PEP-8 compliance
 - [x] Add Wikia support
 - [x] Document with comments
 - [x] Create an interface for switching between wikis
