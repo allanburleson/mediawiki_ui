@@ -61,8 +61,9 @@ class Wiki(object):
         self.fwdButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_forward_24'), action=self.fwdTapped)
         self.homeButton = ui.ButtonItem(image=ui.Image.named('iob:home_24'), action=self.home)
         self.shareButton = ui.ButtonItem(image=ui.Image.named('iob:share_24'), action=self.share)
+        self.safariButton = ui.ButtonItem(image=ui.Image.named('iob:compass_24'), action=self.safari)
         self.webview.right_button_items = [self.searchButton, self.reloadButton, self.fwdButton, self.backButton, self.homeButton]
-        self.webview.left_button_items = [self.shareButton]
+        self.webview.left_button_items = [self.shareButton, self.safariButton]
         self.webview.present('fullscreen', animated=True)
         self.previousSearch = ''
         if len(sys.argv) > 1:

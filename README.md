@@ -21,7 +21,7 @@ Many thanks go to members Pythonista community for their assistance.
 - [x] Make the loading of articles look nicer
 	- [x] Make custom CSS styles
 	- [x] Make urls work with reader thing
-- [ ] Add open in Safari button
+- [x] Add open in Safari button
 - [ ] Add font changer
 - [x] Implement history
 - [ ] Make external URLs work
