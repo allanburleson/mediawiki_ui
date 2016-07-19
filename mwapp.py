@@ -1,6 +1,7 @@
 import dialogs
 import os
 import shelve
+import shutil
 import sys
 from time import sleep
 import ui
@@ -133,7 +134,8 @@ class WikiList(object):
                 wikisToDelete.append(wiki)
         for w in wikisToDelete:
             print(self.tv.delegate.wikis)
-            print(w)
+            shutil.rmtree(os.path.expanduser('~/.mw-' + w))
+            print(os.path.expanduser('~/.mw-' + w))
             del self.tv.delegate.wikis[w]
         
 

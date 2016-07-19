@@ -31,7 +31,7 @@ class Wiki(object):
         #os.chdir(self.wikidir)
         self.modulepath = os.path.dirname(os.path.abspath(__file__))
         os.chdir(self.modulepath)
-        self.wikidir = os.path.expanduser('.mw-' + wikiname)
+        self.wikidir = os.path.expanduser('~/.mw-' + wikiname)
         if not os.path.isdir(self.wikidir):
             os.mkdir(self.wikidir)
         #shutil.copyfile(self.modulepath + '/normalize.css', self.wikidir + '/normalize.css')
