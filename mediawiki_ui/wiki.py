@@ -23,7 +23,7 @@ import threading
 import ui
 import webbrowser
 
-from ._delegates import WebViewDelegate, SearchTableViewDelegate
+from _delegates import WebViewDelegate, SearchTableViewDelegate
         
         
 class Wiki(object):
@@ -159,6 +159,7 @@ class Wiki(object):
             body = s.find(id='bodyContent')
         articletxt = str(body)
         soup = BeautifulSoup(articletxt, 'html.parser')
+        [i.extract() for i in soup.find_all('span', attrs={'class': 'mw-editsection'})]
         links = soup.find_all('a')
         plinks = []
         for link in links:
