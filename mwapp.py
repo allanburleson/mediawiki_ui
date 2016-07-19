@@ -25,7 +25,7 @@ class TableViewDelegate(object):
         for wiki in self.wikis:
             # Find wiki URL and load it
             if wiki == tableview.data_source.items[row]['title']:
-                w = Wiki(wiki, wikis[wiki]['url'], wikis[wiki]['ext'])
+                w = Wiki(wiki, self.wikis[wiki]['url'], self.wikis[wiki]['ext'])
         
     def tableview_did_deselect(self, tableview, section, row):
         pass
@@ -37,11 +37,13 @@ class TableViewDelegate(object):
         return 1
         
     def tableview_accessory_button_tapped(self, tableview, section, row):
-        s1fields=[{'type':'text','key':'title','title':'Title'},
-                {'type':'url','key':'url','title':'URL','value':'http'}]
+        wiki = self.wikis[tableview.data_source.items[row]['title']]
+        wikiname = tableview.data_source.items[row]['title']
+        s1fields=[{'type':'text','key':'title','title':'Title','value':wikiname},
+                {'type':'url','key':'url','title':'URL','value':wiki['url']}]
         urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is NOT the full'\
                   ' wiki URL like "https://en.wikipedia.org/wiki." Use "https://en.wikipedia.org" instead.'
-        s2fields = [{'type': 'url', 'key': 'extension', 'title': 'Wiki extension'}]
+        s2fields = [{'type': 'url', 'key': 'extension', 'title': 'Wiki extension','value':wiki['ext']}]
         extInfo = 'What is meant by "Wiki extension" is the end of the wiki\'s url (for Wikipedia it\'s "/wiki.")'
         result = dialogs.form_dialog('Edit Data', sections=(('', s1fields, urlinfo),('', s2fields, extInfo)))
         if result:

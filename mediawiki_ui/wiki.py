@@ -12,36 +12,42 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from bs4 import BeautifulSoup 
+from bs4 import BeautifulSoup, Tag
 import console
 import dialogs
 import os
 import requests
+import shutil
 import sys
 import threading
 import ui
 import webbrowser
 
-from _delegates import WebViewDelegate, SearchTableViewDelegate
+from ._delegates import WebViewDelegate, SearchTableViewDelegate
         
         
 class Wiki(object):
     def __init__(self, wikiname, basewikiurl, wikiurl):
-        self.wikidir = os.path.expanduser('~/.mw-' + wikiname)
+        #os.chdir(self.wikidir)
+        self.modulepath = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(self.modulepath)
+        self.wikidir = os.path.expanduser('.mw-' + wikiname)
         if not os.path.isdir(self.wikidir):
             os.mkdir(self.wikidir)
-        os.chdir(self.wikidir)
+        #shutil.copyfile(self.modulepath + '/normalize.css', self.wikidir + '/normalize.css')
+        #shutil.copyfile(self.modulepath + '/skeleton.css', self.wikidir + '/skeleton.css')
         self.webdelegate = WebViewDelegate(self)
         self.SearchTableViewDelegate = SearchTableViewDelegate
         if not wikiurl.endswith('/'):
             wikiurl += '/'
         # Create URLs
-        assert basewikiurl in wikiurl, 'basewikiurl must be in wikiurl'
+        #assert basewikiurl in wikiurl, 'basewikiurl must be in wikiurl'
+        assert not wikiurl.startswith('http'), 'must be end of wiki url'
         if basewikiurl.endswith('/'):
             basewikiurl = basewikiurl[:-1]
         self.basewikiurl = basewikiurl
-        self.wikiurl = wikiurl
-        self.searchurl = wikiurl + 'Special:Search?search='
+        self.wikiurl = self.basewikiurl + wikiurl
+        self.searchurl = self.wikiurl + 'Special:Search?search='
         self.history = []
         self.histIndex = 0
         self.back = False
@@ -56,9 +62,9 @@ class Wiki(object):
         self.webview.delegate = WebViewDelegate
         self.loadPage(self.wikiurl)
         self.searchButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_search_24'), action=self.searchTapped)
-        self.reloadButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_refresh_outline_24'), action=self.reloadTapped)
-        self.backButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_back_24'), action=self.backTapped)
-        self.fwdButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_forward_24'), action=self.fwdTapped)
+        self.reloadButton = ui.ButtonItem(image=ui.Image.named('iob:refresh_24'), action=self.reloadTapped)
+        self.backButton = ui.ButtonItem(image=ui.Image.named('iob:arrow_left_c_24'), action=self.backTapped)
+        self.fwdButton = ui.ButtonItem(image=ui.Image.named('iob:arrow_right_c_24'), action=self.fwdTapped)
         self.homeButton = ui.ButtonItem(image=ui.Image.named('iob:home_24'), action=self.home)
         self.shareButton = ui.ButtonItem(image=ui.Image.named('iob:share_24'), action=self.share)
         self.safariButton = ui.ButtonItem(image=ui.Image.named('iob:compass_24'), action=self.safari)
@@ -126,9 +132,10 @@ class Wiki(object):
          
     def loadPage(self, url, regen=False):
         fn = self.fileFromUrl(url)
-        if os.path.isfile(fn) and regen is False:
+        fpath = self.wikidir + '/' + fn
+        if os.path.isfile(fpath) and regen is False:
             filename = fn
-            soup = BeautifulSoup(open(fn, encoding='utf-8').read(), 'html.parser')
+            soup = BeautifulSoup(open(fpath, encoding='utf-8').read(), 'html.parser')
             links = []
             for link in soup.find_all('a'):
                 #
@@ -141,7 +148,7 @@ class Wiki(object):
             filename = self.genPage(url)
             console.hide_activity()
         self.currentpage = url
-        self.webview.load_html(open(filename, encoding='utf-8').read())
+        self.webview.load_html(open(fpath, encoding='utf-8').read())
         
     def genPage(self, url, more=True):
         pagetxt = requests.get(url).text
@@ -151,19 +158,6 @@ class Wiki(object):
         else:
             body = s.find(id='bodyContent')
         articletxt = str(body)
-        articletxt = '''
-        <html><head><style>
-        a {{
-            text-decoration: none;
-        }}
-        a.image {{
-            text-align: center;
-        }}
-        p, a, div {{
-            font-family: Helvetica, Arial, sans-serif;
-        }}
-        </style><title>{}</title></head><body>
-        '''.format(s.title.text) + articletxt + '</body></html>'
         soup = BeautifulSoup(articletxt, 'html.parser')
         links = soup.find_all('a')
         plinks = []
@@ -180,9 +174,28 @@ class Wiki(object):
                 img['src'] = self.basewikiurl + img['src']
             if img.get('srcset'):
                 del img.attrs['srcset']
+        normalize = open('normalize.css', 'r', encoding='utf-8').read()
+        skeleton = open('skeleton.css', 'r', encoding='utf-8').read()
         articletxt = soup.prettify()
+        articletxt = '''
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <style>
+                {}
+                </style>
+                <style>
+                {}
+                </style>
+                <title>{}</title>
+            </head>
+            <body>
+            {}
+            </body>
+        </html>
+        '''.format(normalize, skeleton, s.title.text, articletxt)
         filename = self.fileFromUrl(url)
-        file = open(filename, 'w', encoding='utf-8')
+        file = open(self.wikidir + '/' + filename, 'w', encoding='utf-8')
         file.write(articletxt)
         file.close()
         return filename
@@ -253,4 +266,4 @@ class Wiki(object):
         
 
 if __name__ == '__main__':
-    w = Wiki('coppermind', 'http://coppermind.net', 'http://coppermind.net/wiki')
+    w = Wiki('coppermind', 'http://coppermind.net', '/wiki')
