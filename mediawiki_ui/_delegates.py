@@ -2,8 +2,23 @@ import console
 import ui
 
 class WebViewDelegate (object):
-    def webview_should_start_load(webview, url, nav_type):
-        return True
+    def __init__(self, wki):
+        global wiki, url
+        url = ''
+        wiki = wki
+        
+    def webview_should_start_load(webview, pgurl, nav_type):
+        global url
+        if not pgurl.startswith(wiki.basewikiurl) and pgurl != 'about:blank':
+            url = pgurl
+            return True
+        # The pages loaded with load_html are about:blank
+        elif pgurl == 'about:blank':
+            url = wiki.currentpage
+            return True
+        else:
+            wiki.loadPage(pgurl)
+            return False
         
     def webview_did_start_load(webview):
         # Tell the user that the page is loading
@@ -14,20 +29,23 @@ class WebViewDelegate (object):
         currenturl = webview.eval_js('window.location.href')
         webview.name = webview.eval_js('document.title').split(' -')[0]
         console.hide_activity()
+        if url and not wiki.back:
+            wiki.history.append(url)
+            wiki.histIndex += 1
         
     def webview_did_fail_load(webview, error_code, error_msg):
-        console.alert('Error %s' % error_code, error_msg, 'OK',
-                      hide_cancel_button=True)
+        print('Error %s' % error_code, error_msg)
         
         
 class SearchTableViewDelegate(object):
-    def __init__(self, items, wv, url, results):   
+    def __init__(self, items, wv, wiki, url, results):   
         self.items = items
         self.currentNumLines = len(items)
         self.currentTitle = None
         self.currentRow = None
         self.wv = wv
         self.wikiurl = url
+        self.wiki = wiki
         self.results = results
         
     def tableview_did_select(self, tableview, section, row):
@@ -36,7 +54,7 @@ class SearchTableViewDelegate(object):
         self.currentRow = row
         tableview.reload_data()
         tableview.close()
-        self.wv.load_url(self.wikiurl + 
+        self.wiki.loadPage(self.wikiurl + 
                          ('%20'.join(self.results[row].split(' '))))
         
     def tableview_did_deselect(self, tableview, section, row):

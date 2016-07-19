@@ -13,12 +13,19 @@ You must have an argument for the wiki URL.
 Example: `w = wiki.Wiki('https://wikipedia.org/wiki/')`  
 This URL MUST be the full URL for the wiki (`https://wikipedia.org/wiki`, not `https://wikipedia.org`). Since the end of wiki URLs can vary, the script won't crash but not using the full URL can cause weird bugs.
 
-## TODO:
+## Acknowlegements
+Many thanks go to members Pythonista community for their assistance.
 
-- [ ] Make the loading of articles look nicer
-	- [ ] Make custom CSS styles
-	- [ ] Add open in Safari button
-	- [ ] Add font changer
+## TODO
+
+- [x] Make the loading of articles look nicer
+	- [x] Make custom CSS styles
+	- [x] Make urls work with reader thing
+- [x] Add open in Safari button
+- [ ] Add font changer
+- [x] Implement history
+- [x] Make external URLs work
+- [ ] Improve PEP-8 compliance
 - [x] Add Wikia support
 - [x] Document with comments
 - [x] Create an interface for switching between wikis

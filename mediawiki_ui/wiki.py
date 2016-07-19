@@ -15,22 +15,37 @@
 from bs4 import BeautifulSoup 
 import console
 import dialogs
+import os
 import requests
 import sys
+import threading
 import ui
+import webbrowser
 
-from ._delegates import WebViewDelegate, SearchTableViewDelegate
-
-
+from _delegates import WebViewDelegate, SearchTableViewDelegate
+        
+        
 class Wiki(object):
-    def __init__(self, wikiurl):
-        self.webdelegate = WebViewDelegate
+    def __init__(self, wikiname, basewikiurl, wikiurl):
+        self.wikidir = os.path.expanduser('~/.mw-' + wikiname)
+        if not os.path.isdir(self.wikidir):
+            os.mkdir(self.wikidir)
+        os.chdir(self.wikidir)
+        self.webdelegate = WebViewDelegate(self)
         self.SearchTableViewDelegate = SearchTableViewDelegate
         if not wikiurl.endswith('/'):
             wikiurl += '/'
         # Create URLs
+        assert basewikiurl in wikiurl, 'basewikiurl must be in wikiurl'
+        if basewikiurl.endswith('/'):
+            basewikiurl = basewikiurl[:-1]
+        self.basewikiurl = basewikiurl
         self.wikiurl = wikiurl
         self.searchurl = wikiurl + 'Special:Search?search='
+        self.history = []
+        self.histIndex = 0
+        self.back = False
+        self.closed = False
         if len(sys.argv) > 2:
             self.args = True
         else:
@@ -38,18 +53,27 @@ class Wiki(object):
         # Create WebView
         self.webview = ui.WebView()
         self.mainSource = ''
-        self.loadPage(wikiurl)
         self.webview.delegate = WebViewDelegate
+        self.loadPage(self.wikiurl)
         self.searchButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_search_24'), action=self.searchTapped)
         self.reloadButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_refresh_outline_24'), action=self.reloadTapped)
         self.backButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_back_24'), action=self.backTapped)
         self.fwdButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_arrow_forward_24'), action=self.fwdTapped)
         self.homeButton = ui.ButtonItem(image=ui.Image.named('iob:home_24'), action=self.home)
+        self.shareButton = ui.ButtonItem(image=ui.Image.named('iob:share_24'), action=self.share)
+        self.safariButton = ui.ButtonItem(image=ui.Image.named('iob:compass_24'), action=self.safari)
         self.webview.right_button_items = [self.searchButton, self.reloadButton, self.fwdButton, self.backButton, self.homeButton]
-        self.webview.present('fullscreen', animated=False)
+        self.webview.left_button_items = [self.shareButton, self.safariButton]
+        self.webview.present('fullscreen', animated=True)
         self.previousSearch = ''
         if len(sys.argv) > 1:
             self.search(sys.argv[1])
+        closeThread = threading.Thread(target=self.waitForClose)
+        closeThread.start()
+        
+    def waitForClose(self):
+        self.webview.wait_modal()
+        self.closed = True
             
     def closeAll(self):
         try:
@@ -94,23 +118,125 @@ class Wiki(object):
             console.hud_alert('No results', 'error')
             return
         itemlist = [{'title': result, 'accessory_type':'none'} for result in self.results]
-        vdel = SearchTableViewDelegate(itemlist, self.webview, self.wikiurl, self.results)
+        vdel = SearchTableViewDelegate(itemlist, self.webview, self, self.wikiurl, self.results)
         self.tv = ui.TableView()
         self.tv.name = soup.title.text.split(' -')[0]
         self.tv.delegate = self.tv.data_source = vdel
         self.tv.present('fullscreen')
          
-    def loadPage(self, url):
-        self.webview.load_url(url)
+    def loadPage(self, url, regen=False):
+        fn = self.fileFromUrl(url)
+        if os.path.isfile(fn) and regen is False:
+            filename = fn
+            soup = BeautifulSoup(open(fn, encoding='utf-8').read(), 'html.parser')
+            links = []
+            for link in soup.find_all('a'):
+                #
+                if link.get('href'):
+                    if self.basewikiurl in link['href']:
+                        links.append(link['href'])
+            self.genMorePages(links)
+        else:
+            console.show_activity('Formatting page...')
+            filename = self.genPage(url)
+            console.hide_activity()
+        self.currentpage = url
+        self.webview.load_html(open(filename, encoding='utf-8').read())
+        
+    def genPage(self, url, more=True):
+        pagetxt = requests.get(url).text
+        s = BeautifulSoup(pagetxt, 'html.parser')
+        if 'wikia.com' in self.wikiurl:
+            body = s.find(id='mw-content-text')
+        else:
+            body = s.find(id='bodyContent')
+        articletxt = str(body)
+        articletxt = '''
+        <html><head><style>
+        a {{
+            text-decoration: none;
+        }}
+        a.image {{
+            text-align: center;
+        }}
+        p, a, div {{
+            font-family: Helvetica, Arial, sans-serif;
+        }}
+        </style><title>{}</title></head><body>
+        '''.format(s.title.text) + articletxt + '</body></html>'
+        soup = BeautifulSoup(articletxt, 'html.parser')
+        links = soup.find_all('a')
+        plinks = []
+        for link in links:
+            if link.get('href'):
+                if not link['href'].startswith('http'):
+                    link['href'] = self.basewikiurl + link['href']
+                    plinks.append(link['href'])
+        if more:  
+            self.genMorePages(plinks)
+        imgs = soup.find_all('img')
+        for img in imgs:
+            if img.get('src'):
+                img['src'] = self.basewikiurl + img['src']
+            if img.get('srcset'):
+                del img.attrs['srcset']
+        articletxt = soup.prettify()
+        filename = self.fileFromUrl(url)
+        file = open(filename, 'w', encoding='utf-8')
+        file.write(articletxt)
+        file.close()
+        return filename
+        
+    @ui.in_background
+    def genMorePages(self, urls):
+        usedurls = []
+        for url in urls:
+            fn = self.fileFromUrl(url)
+            if not os.path.isfile(fn):
+                usedurls.append(url)
+        for url in usedurls:
+            if self.closed:
+                return
+            #print('{}% done, parsing {}'.format(int(usedurls.index(url) + 1 / 
+            #                                    len(usedurls)), url))
+            self.genPage(url, False)
+        
+    def fileFromUrl(self, url):
+        filename = None
+        try:
+            filename = url.split('//')[1].split('/')[2]
+        except IndexError:
+            pass
+        if not filename:
+            filename = 'main.html'
+        if not filename.endswith('.html'):
+            filename += '.html'
+        return filename
                             
     def reloadTapped(self, sender):
-        self.webview.reload()
+        thread = threading.Thread(target=self.loadPage, args=(self.currentpage, True))
+        thread.start()
         
     def backTapped(self, sender):
-        self.webview.go_back()
+        if len(self.history) > 1:
+            self.back = True
+            self.getHistoryPage(self.history[self.histIndex - 2])
+            self.histIndex -= 1
+            self.back = False
     
     def fwdTapped(self, sender):
-        self.webview.go_forward()
+        if len(self.history) > 1:
+            #self.getHistoryPage(self.history)
+            self.back = True
+            self.getHistoryPage(self.history[self.histIndex - 1])
+            self.histIndex -= 1
+            self.back = False
+        
+    def getHistoryPage(self, url):
+        if url in self.basewikiurl:
+            self.loadPage(url)
+        else:
+            self.webview.load_url(url)
                       
     def searchTapped(self, sender):
         page = console.input_alert('Enter search terms', '', self.previousSearch, 'Go')
@@ -118,3 +244,13 @@ class Wiki(object):
              
     def home(self, sender=None):
         self.loadPage(self.wikiurl)
+    
+    def share(self, sender):
+        dialogs.share_url(self.currentpage)
+        
+    def safari(self, sender):
+        webbrowser.open('safari-' + self.currentpage)
+        
+
+if __name__ == '__main__':
+    w = Wiki('coppermind', 'http://coppermind.net', 'http://coppermind.net/wiki')

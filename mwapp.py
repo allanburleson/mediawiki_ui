@@ -25,7 +25,7 @@ class TableViewDelegate(object):
         for wiki in self.wikis:
             # Find wiki URL and load it
             if wiki == tableview.data_source.items[row]['title']:
-                w = Wiki(self.wikis[wiki])
+                w = Wiki(wiki, wikis[wiki]['url'], wikis[wiki]['ext'])
         
     def tableview_did_deselect(self, tableview, section, row):
         pass
@@ -37,19 +37,19 @@ class TableViewDelegate(object):
         return 1
         
     def tableview_accessory_button_tapped(self, tableview, section, row):
-        fields=[{'type': 'text', 'key': 'title', 'title': 'Title',
-                 'value': tableview.data_source.items[row]['title']},
-                {'type': 'url', 'key': 'url', 'title': 'URL',
-                 'value': self.wikis[tableview.data_source.items[row]['title']]}]
-        urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is the full'\
-                  ' wiki URL ("https://en.wikipedia.org/wiki", not "https://en.wikipedia.org").'
-        result = dialogs.form_dialog('Edit Data', sections=(('', fields, urlinfo),))
+        s1fields=[{'type':'text','key':'title','title':'Title'},
+                {'type':'url','key':'url','title':'URL','value':'http'}]
+        urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is NOT the full'\
+                  ' wiki URL like "https://en.wikipedia.org/wiki." Use "https://en.wikipedia.org" instead.'
+        s2fields = [{'type': 'url', 'key': 'extension', 'title': 'Wiki extension'}]
+        extInfo = 'What is meant by "Wiki extension" is the end of the wiki\'s url (for Wikipedia it\'s "/wiki.")'
+        result = dialogs.form_dialog('Edit Data', sections=(('', s1fields, urlinfo),('', s2fields, extInfo)))
         if result:
             origTitle = tableview.data_source.items[row]['title']
             tableview.data_source.items[row]['title'] = result['title']
             tableview.reload_data()
-            self.wikis[tableview.data_source.items[row]['title']] = result['url']
-            self.wikis[origTitle] = None
+            self.wikis[tableview.data_source.items[row]['title']] = {'url': result['url'], 'ext': result['extension']}
+            del self.wikis[origTitle]
         
 
 class WikiList(object):
@@ -85,14 +85,16 @@ class WikiList(object):
           
     def add(self, sender):
         '''Add wiki to list of wikis'''
-        fields=[{'type':'text','key':'title','title':'Title'},
+        s1fields=[{'type':'text','key':'title','title':'Title'},
                 {'type':'url','key':'url','title':'URL','value':'http'}]
-        urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is the full'\
-                  ' wiki URL ("https://en.wikipedia.org/wiki", not "https://en.wikipedia.org").'
-        result = dialogs.form_dialog('Add Wiki', sections=(('', fields, urlinfo),))
+        urlinfo = 'Make sure that your URL starts with "http://" or "https://" and it is NOT the full'\
+                  ' wiki URL like "https://en.wikipedia.org/wiki." Use "https://en.wikipedia.org" instead.'
+        s2fields = [{'type': 'url', 'key': 'extension', 'title': 'Wiki extension'}]
+        extInfo = 'What is meant by "Wiki extension" is the end of the wiki\'s url (for Wikipedia it\'s "/wiki.")'
+        result = dialogs.form_dialog('Add Wiki', sections=(('', s1fields, urlinfo),('', s2fields, extInfo)))
         if result:
             self.tv.data_source.items.append(({'title': result['title'], 'accessory_type': 'detail_disclosure_button'}))
-            self.tv.delegate.wikis[result['title']] = result['url']
+            self.tv.delegate.wikis[result['title']] = {'url': result['url'], 'ext': result['extension']}
             self.tv.reload()
     
     def edit(self, sender):
@@ -115,8 +117,7 @@ class WikiList(object):
         s['items'] = self.tv.data_source.items
         wikis = {}
         for wiki in self.tv.delegate.wikis:
-            if self.tv.delegate.wikis[wiki] is not None:
-                wikis[wiki] = self.tv.delegate.wikis[wiki]
+            wikis[wiki] = self.tv.delegate.wikis[wiki]
         s['wikis'] = wikis
         s.close()
         
@@ -124,10 +125,16 @@ class WikiList(object):
         items = []
         for i in sender.items:
             items.append(i['title'])
+        wikisToDelete = []
         for wiki in self.tv.delegate.wikis:
             if wiki not in items:
-                self.tv.delegate.wikis[wiki] = None
+                wikisToDelete.append(wiki)
+        for w in wikisToDelete:
+            print(self.tv.delegate.wikis)
+            print(w)
+            del self.tv.delegate.wikis[w]
         
 
-wikis = {'Wikipedia':'https://en.wikipedia.org/wiki'}
+wikis = {'Esolangs':{'url': 'https://esolangs.org', 'ext': '/wiki'}, 
+         'Wikipedia':{'url': 'https://en.wikipedia.org', 'ext': '/wiki'}}
 app = WikiList(wikis)
