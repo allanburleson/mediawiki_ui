@@ -12,15 +12,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import sys
+import threading
+import webbrowser
+
 from bs4 import BeautifulSoup
 import console
 import dialogs
-import os
 import requests
-import sys
-import threading
 import ui
-import webbrowser
 
 from _delegates import WebViewDelegate, SearchTableViewDelegate
         

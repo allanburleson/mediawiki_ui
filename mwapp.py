@@ -1,9 +1,10 @@
-import dialogs
 import os
 import shelve
 import shutil
 import sys
 from time import sleep
+
+import dialogs
 import ui
 
 from mediawiki_ui.wiki import Wiki
