@@ -1,6 +1,7 @@
 import console
 import ui
 
+
 class WebViewDelegate (object):
     def __init__(self, wki):
         global wiki, url
@@ -38,7 +39,7 @@ class WebViewDelegate (object):
         
         
 class SearchTableViewDelegate(object):
-    def __init__(self, items, wv, wiki, url, results):   
+    def __init__(self, items, wv, wiki, url, results):
         self.items = items
         self.currentNumLines = len(items)
         self.currentTitle = None
@@ -54,8 +55,8 @@ class SearchTableViewDelegate(object):
         self.currentRow = row
         tableview.reload_data()
         tableview.close()
-        self.wiki.loadPage(self.wikiurl + 
-                         ('%20'.join(self.results[row].split(' '))))
+        self.wiki.loadPage(self.wikiurl +
+                           ('%20'.join(self.results[row].split(' '))))
         
     def tableview_did_deselect(self, tableview, section, row):
         pass
@@ -71,10 +72,9 @@ class SearchTableViewDelegate(object):
 
     def tableview_cell_for_row(self, tableview, section, row):
         cell = ui.TableViewCell()
-        cell.text_label.text =  self.items[row]['title']
+        cell.text_label.text = self.items[row]['title']
         cell.accessory_type = self.items[row]['accessory_type']
         return cell
-
 
     def tableview_can_delete(self, tableview, section, row):
         return False
@@ -87,5 +87,6 @@ class SearchTableViewDelegate(object):
         tableview.delete_rows((row,))
         del self.items[row]
 
-    def tableview_move_row(self, tableview, from_section, from_row, to_section, to_row):
-        self.items = listShuffle(self.items,from_row,to_row) 
+    def tableview_move_row(self, tableview, from_section, from_row, to_section,
+                           to_row):
+        self.items = listShuffle(self.items, from_row, to_row)

@@ -12,12 +12,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 import console
 import dialogs
 import os
 import requests
-import shutil
 import sys
 import threading
 import ui
@@ -28,20 +27,16 @@ from _delegates import WebViewDelegate, SearchTableViewDelegate
         
 class Wiki(object):
     def __init__(self, wikiname, basewikiurl, wikiurl):
-        #os.chdir(self.wikidir)
         self.modulepath = os.path.dirname(os.path.abspath(__file__))
         os.chdir(self.modulepath)
         self.wikidir = os.path.expanduser('~/.mw-' + wikiname)
         if not os.path.isdir(self.wikidir):
             os.mkdir(self.wikidir)
-        #shutil.copyfile(self.modulepath + '/normalize.css', self.wikidir + '/normalize.css')
-        #shutil.copyfile(self.modulepath + '/skeleton.css', self.wikidir + '/skeleton.css')
         self.webdelegate = WebViewDelegate(self)
         self.SearchTableViewDelegate = SearchTableViewDelegate
         if not wikiurl.endswith('/'):
             wikiurl += '/'
         # Create URLs
-        #assert basewikiurl in wikiurl, 'basewikiurl must be in wikiurl'
         assert not wikiurl.startswith('http'), 'must be end of wiki url'
         if basewikiurl.endswith('/'):
             basewikiurl = basewikiurl[:-1]
@@ -61,14 +56,25 @@ class Wiki(object):
         self.mainSource = ''
         self.webview.delegate = WebViewDelegate
         self.loadPage(self.wikiurl)
-        self.searchButton = ui.ButtonItem(image=ui.Image.named('iob:search_24'), action=self.searchTapped)
-        self.reloadButton = ui.ButtonItem(image=ui.Image.named('iob:refresh_24'), action=self.reloadTapped)
-        self.backButton = ui.ButtonItem(image=ui.Image.named('iob:arrow_left_c_24'), action=self.backTapped)
-        self.fwdButton = ui.ButtonItem(image=ui.Image.named('iob:arrow_right_c_24'), action=self.fwdTapped)
-        self.homeButton = ui.ButtonItem(image=ui.Image.named('iob:home_24'), action=self.home)
-        self.shareButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_upload_outline_32'), action=self.share)
-        self.safariButton = ui.ButtonItem(image=ui.Image.named('iob:compass_24'), action=self.safari)
-        self.webview.right_button_items = [self.searchButton, self.reloadButton, self.fwdButton, self.backButton, self.homeButton]
+        self.searchButton = ui.ButtonItem(image=ui.Image.named(
+                                    'iob:search_24'), action=self.searchTapped)
+        self.reloadButton = ui.ButtonItem(image=ui.Image.named(
+                                'iob:refresh_24'), action=self.reloadTapped)
+        self.backButton = ui.ButtonItem(image=ui.Image.named(
+                                'iob:arrow_left_c_24'), action=self.backTapped)
+        self.fwdButton = ui.ButtonItem(image=ui.Image.named(
+                                'iob:arrow_right_c_24'), action=self.fwdTapped)
+        self.homeButton = ui.ButtonItem(image=ui.Image.named('iob:home_24'),
+                                        action=self.home)
+        self.shareButton = ui.ButtonItem(image=ui.Image.named(
+                            'iob:ios7_upload_outline_32'), action=self.share)
+        self.safariButton = ui.ButtonItem(image=ui.Image.named(
+                                      'iob:compass_24'), action=self.safari)
+        self.webview.right_button_items = [self.searchButton,
+                                           self.reloadButton,
+                                           self.fwdButton,
+                                           self.backButton,
+                                           self.homeButton]
         self.webview.left_button_items = [self.shareButton, self.safariButton]
         self.webview.present('fullscreen', animated=True)
         self.previousSearch = ''
@@ -113,7 +119,8 @@ class Wiki(object):
         if 'wikia.com' in self.wikiurl:
             elems = soup.findAll('a', attrs={'class': 'result-link'})
         else:
-            elems = soup.findAll('div', attrs={'class': 'mw-search-result-heading'})
+            elems = soup.findAll('div',
+                                 attrs={'class': 'mw-search-result-heading'})
         self.results = []
         if elems is not None:
             for elem in elems:
@@ -123,8 +130,10 @@ class Wiki(object):
         if len(self.results) == 0:
             console.hud_alert('No results', 'error')
             return
-        itemlist = [{'title': result, 'accessory_type':'none'} for result in self.results]
-        vdel = SearchTableViewDelegate(itemlist, self.webview, self, self.wikiurl, self.results)
+        itemlist = [{'title': result, 'accessory_type': 'none'}
+                    for result in self.results]
+        vdel = SearchTableViewDelegate(itemlist, self.webview, self,
+                                       self.wikiurl, self.results)
         self.tv = ui.TableView()
         self.tv.name = soup.title.text.split(' -')[0]
         self.tv.delegate = self.tv.data_source = vdel
@@ -135,7 +144,8 @@ class Wiki(object):
         fpath = self.wikidir + '/' + fn
         if os.path.isfile(fpath) and regen is False:
             filename = fn
-            soup = BeautifulSoup(open(fpath, encoding='utf-8').read(), 'html.parser')
+            soup = BeautifulSoup(open(fpath, encoding='utf-8').read(),
+                                 'html.parser')
             links = []
             for link in soup.find_all('a'):
                 #
@@ -159,7 +169,8 @@ class Wiki(object):
             body = s.find(id='bodyContent')
         articletxt = str(body)
         soup = BeautifulSoup(articletxt, 'html.parser')
-        [i.extract() for i in soup.find_all('span', attrs={'class': 'mw-editsection'})]
+        [i.extract() for i in soup.find_all('span',
+                                            attrs={'class': 'mw-editsection'})]
         links = soup.find_all('a')
         plinks = []
         for link in links:
@@ -167,7 +178,7 @@ class Wiki(object):
                 if not link['href'].startswith('http'):
                     link['href'] = self.basewikiurl + link['href']
                     plinks.append(link['href'])
-        if more:  
+        if more:
             self.genMorePages(plinks)
         imgs = soup.find_all('img')
         for img in imgs:
@@ -211,8 +222,6 @@ class Wiki(object):
         for url in usedurls:
             if self.closed:
                 return
-            #print('{}% done, parsing {}'.format(int(usedurls.index(url) + 1 / 
-            #                                    len(usedurls)), url))
             self.genPage(url, False)
         
     def fileFromUrl(self, url):
@@ -228,7 +237,8 @@ class Wiki(object):
         return filename
                             
     def reloadTapped(self, sender):
-        thread = threading.Thread(target=self.loadPage, args=(self.currentpage, True))
+        thread = threading.Thread(target=self.loadPage, args=(self.currentpage,
+                                                              True))
         thread.start()
         
     def backTapped(self, sender):
@@ -240,7 +250,6 @@ class Wiki(object):
     
     def fwdTapped(self, sender):
         if len(self.history) > 1:
-            #self.getHistoryPage(self.history)
             self.back = True
             self.getHistoryPage(self.history[self.histIndex - 1])
             self.histIndex -= 1
@@ -253,7 +262,8 @@ class Wiki(object):
             self.webview.load_url(url)
                       
     def searchTapped(self, sender):
-        page = console.input_alert('Enter search terms', '', self.previousSearch, 'Go')
+        page = console.input_alert('Enter search terms', '',
+                                   self.previousSearch, 'Go')
         self.search(page)
              
     def home(self, sender=None):
