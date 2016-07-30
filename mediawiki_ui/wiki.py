@@ -61,12 +61,12 @@ class Wiki(object):
         self.mainSource = ''
         self.webview.delegate = WebViewDelegate
         self.loadPage(self.wikiurl)
-        self.searchButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_search_24'), action=self.searchTapped)
+        self.searchButton = ui.ButtonItem(image=ui.Image.named('iob:search_24'), action=self.searchTapped)
         self.reloadButton = ui.ButtonItem(image=ui.Image.named('iob:refresh_24'), action=self.reloadTapped)
         self.backButton = ui.ButtonItem(image=ui.Image.named('iob:arrow_left_c_24'), action=self.backTapped)
         self.fwdButton = ui.ButtonItem(image=ui.Image.named('iob:arrow_right_c_24'), action=self.fwdTapped)
         self.homeButton = ui.ButtonItem(image=ui.Image.named('iob:home_24'), action=self.home)
-        self.shareButton = ui.ButtonItem(image=ui.Image.named('iob:share_24'), action=self.share)
+        self.shareButton = ui.ButtonItem(image=ui.Image.named('iob:ios7_upload_outline_32'), action=self.share)
         self.safariButton = ui.ButtonItem(image=ui.Image.named('iob:compass_24'), action=self.safari)
         self.webview.right_button_items = [self.searchButton, self.reloadButton, self.fwdButton, self.backButton, self.homeButton]
         self.webview.left_button_items = [self.shareButton, self.safariButton]
